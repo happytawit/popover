@@ -1,26 +1,18 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from 'react'
+import Popover from './componentts/Popover/Popover'
 
 function App() {
+  const content = <span>My content</span>
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="app">
+      <h1>My popover</h1>
+
+      <Popover title="nytitle" content={content}>
+        <button>Hover me</button>
+      </Popover>
     </div>
-  );
+  )
 }
 
-export default App;
+export default App
