@@ -1,23 +1,16 @@
-/* .popoverWrapper {
-  position: relative;
-} */
-
-.popover {
+.popoverPortals {
   position: absolute;
-  z-index: 1;
-  top: 0;
-  left: 0;
-  transform: translate(-50%, -110%);
+  width: 200px;
   padding: 10px;
   min-width: 150px;
   border: 1px solid rgba(1, 1, 1, 0.3);
   border-radius: 10px;
   background-color: white;
-
   box-shadow: 0 2px 5px rgba(1, 1, 1, 0.3);
+  transform: translate(-50%, -110%);
 }
 
-.popover__title {
+.popoverPortals__title {
   margin-bottom: 10px;
   font-weight: 600;
 }

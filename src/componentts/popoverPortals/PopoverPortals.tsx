@@ -1,6 +1,7 @@
 import React, { ReactElement, useEffect, useRef, useState } from 'react'
 import ReactDOM, { createPortal } from 'react-dom'
-import './Popover.css'
+import Portal from './Portal'
+import './popoverPortals.css'
 
 type Props = {
   title: string
@@ -13,7 +14,7 @@ type PopoverPostion = {
   top: number
 }
 
-export default function Popover({ title, content, children }: Props) {
+export default function PopoverPortals({ title, content, children }: Props) {
   const [isVisible, setIsVisible] = useState<boolean>(false)
   const [popoverPosition, setPopoverPosition] = useState<PopoverPostion>()
 
@@ -59,14 +60,16 @@ export default function Popover({ title, content, children }: Props) {
   return (
     <>
       {isVisible && (
-        <div
-          className="popover"
-          ref={popoverRef}
-          style={{ ...popoverPosition }}
-        >
-          <div className="popover__title">{title}</div>
-          <div className="popover__content">{content}</div>
-        </div>
+        <Portal>
+          <div
+            className="popoverPortals"
+            ref={popoverRef}
+            style={{ ...popoverPosition }}
+          >
+            <div className="popoverPortals__title">{title}</div>
+            <div className="popoverPortals__content">{content}</div>
+          </div>
+        </Portal>
       )}
 
       {/* Расположение popover считаем отностильно положения children 
@@ -75,7 +78,6 @@ export default function Popover({ title, content, children }: Props) {
       {React.cloneElement(children, {
         ...children?.props,
         ref: childRef,
-        // style: { position: 'relative' },
       })}
     </>
   )
