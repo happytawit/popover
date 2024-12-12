@@ -1,12 +1,28 @@
-import React, { ReactElement, useEffect, useRef, useState } from 'react'
-import ReactDOM, { createPortal } from 'react-dom'
+import React, {
+  ReactElement,
+  useEffect,
+  useRef,
+  useState,
+  UIEvent,
+} from 'react'
+//import ReactDOM, { createPortal } from 'react-dom'
+import { Transition, CSSTransition } from 'react-transition-group'
 import Portal from './Portal'
 import './popoverPortals.css'
 
-type Props = {
-  title: string
-  content: React.ReactNode
-  children: React.ReactElement
+function throttle(callback: any, delay: number = 250) {
+  let isPaused = false
+
+  return (...args: any) => {
+    if (isPaused) return
+
+    callback(...args)
+    isPaused = true
+
+    setTimeout(() => {
+      isPaused = false
+    }, delay)
+  }
 }
 
 type PopoverPostion = {
@@ -14,46 +30,144 @@ type PopoverPostion = {
   top: number
 }
 
-export default function PopoverPortals({ title, content, children }: Props) {
+type popoverPlacement =
+  | 'bottom'
+  | 'bottomLeft'
+  | 'bottomRight'
+  | 'top'
+  | 'topLeft'
+  | 'topRight'
+
+type Props = {
+  title: string
+  content: React.ReactNode
+  offset?: number
+  placement?: popoverPlacement
+  width?: number
+  children: React.ReactElement
+}
+
+export default function PopoverPortals({
+  title,
+  content,
+  offset = 0,
+  placement = 'top',
+  width,
+  children,
+}: Props) {
   const [isVisible, setIsVisible] = useState<boolean>(false)
   const [popoverPosition, setPopoverPosition] = useState<PopoverPostion>()
 
   const childRef = useRef<HTMLElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    setMouseHandlers()
-  }, [])
+  console.log('popoverRef.current', popoverRef.current)
 
   useEffect(() => {
-    setPopoverPositionHandler()
+    setHandlers()
   }, [])
 
-  function setPopoverPositionHandler() {
-    if (!childRef.current) return
+  function calculateInitialPopoverPosition(
+    childRect: DOMRect,
+    popOverRect: DOMRect,
+  ) {
+    // положение элемента к которому привязан popover с учетом прокрутки страницы
+    let left = childRect.x + window.scrollX
+    let top = childRect.y + window.scrollY
 
-    const childRect = childRef.current.getBoundingClientRect()
+    switch (placement) {
+      case 'topLeft':
+        top = top - popOverRect.height - offset
+        break
 
-    setPopoverPosition({
-      left: childRect.x + childRect.width / 2,
-      top: childRect.y,
-    })
+      case 'top':
+        top = top - popOverRect.height - offset
+        left = left - popOverRect.width / 2 + childRect.width / 2
+        break
+
+      case 'topRight':
+        top = top - popOverRect.height - offset
+        left = left - (popOverRect.width - childRect.width)
+        break
+
+      case 'bottomLeft':
+        top = top + childRect.height + offset
+        break
+
+      case 'bottom':
+        top = top + childRect.height + offset
+        left = left - popOverRect.width / 2 + childRect.width / 2
+        break
+
+      case 'bottomRight':
+        top = top + childRect.height + offset
+        left = left - (popOverRect.width - childRect.width)
+        break
+
+      default:
+        break
+    }
+    console.log('left, top in initial', left, top)
+    return { left, top }
   }
 
-  function setMouseHandlers() {
+  function calculatePopoverPostition(
+    currentPosition: PopoverPostion | undefined,
+  ) {
+    if (!childRef.current || !popoverRef.current) return
+
+    const childRect = childRef.current.getBoundingClientRect()
+    const popOverRect = popoverRef.current.getBoundingClientRect()
+
+    console.log('popOverRect', popOverRect)
+
+    let { left, top } =
+      currentPosition ?? calculateInitialPopoverPosition(childRect, popOverRect)
+
+    // если приближаемся к верхней границе viewport, то смещаем popover вниз
+    if (popOverRect.y < 10) {
+      top = top + popOverRect.height + childRect.height + 2 * offset
+    }
+
+    // если приближаемся к нижней границе viewport, то смещаем popover вверх
+    if (popOverRect.y + popOverRect.height > window.innerHeight - 10) {
+      top = top - popOverRect.height - childRect.height - 2 * offset
+    }
+
+    return { left, top }
+  }
+
+  function setHandlers() {
     if (!childRef.current) return
 
     const childRefCurrent = childRef.current
 
-    const mouseenterHandler = () => setIsVisible(true)
-    const mouseleaveHandler = () => setIsVisible(false)
+    const mouseleaveHandler = () => {} //setIsVisible(false)
+    const mouseenterHandler = () => {
+      setIsVisible(true)
+      setTimeout(
+        () =>
+          setPopoverPosition((prevState) =>
+            calculatePopoverPostition(prevState),
+          ),
+        0,
+      )
+    }
+
+    const onScrollHandler = throttle(
+      () =>
+        setPopoverPosition((prevState) => calculatePopoverPostition(prevState)),
+      1000,
+    )
 
     childRefCurrent.addEventListener('mouseenter', mouseenterHandler)
     childRefCurrent.addEventListener('mouseleave', mouseleaveHandler)
+    // window.addEventListener('scroll', onScrollHandler)
 
     return () => {
       childRefCurrent.removeEventListener('mouseenter', mouseenterHandler)
       childRefCurrent.removeEventListener('mouseleave', mouseleaveHandler)
+      // window.removeEventListener('scroll', onScrollHandler)
     }
   }
 
@@ -64,7 +178,10 @@ export default function PopoverPortals({ title, content, children }: Props) {
           <div
             className="popoverPortals"
             ref={popoverRef}
-            style={{ ...popoverPosition }}
+            style={{
+              ...popoverPosition,
+              width: width,
+            }}
           >
             <div className="popoverPortals__title">{title}</div>
             <div className="popoverPortals__content">{content}</div>
@@ -81,4 +198,42 @@ export default function PopoverPortals({ title, content, children }: Props) {
       })}
     </>
   )
+}
+
+{
+  /* {isVisible && (
+        <Portal>
+          <div
+            className="popoverPortals"
+            // ref={popoverRef}
+            style={{
+              ...popoverPosition,
+            }}
+          >
+            <div className="popoverPortals__title">{title}</div>
+            <div className="popoverPortals__content">{content}</div>
+          </div>
+        </Portal>
+      )} */
+}
+{
+  /* <Transition in={isVisible} timeout={duration}>
+        {(state) => (
+          // <Portal>
+          <div
+            className="popoverPortals"
+            ref={popoverRef}
+            style={{
+              ...popoverPosition,
+              ...defaultStyle,
+              ...transitionStyles[state],
+              width: width ? width : 200,
+            }}
+          >
+            <div className="popoverPortals__title">{title}</div>
+            <div className="popoverPortals__content">{content}</div>
+          </div>
+          // </Portal>
+        )}
+      </Transition> */
 }
